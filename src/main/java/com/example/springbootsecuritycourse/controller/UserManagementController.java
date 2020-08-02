@@ -47,6 +47,12 @@ public class UserManagementController {
 				.collect(Collectors.toList());
 	}
 
+	@GetMapping("/{userId}")
+	@PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_ADMIN_TRAINEE')")
+	public UserResource getUserById(@PathVariable Integer userId) {
+		return userMapper.map(userService.getUserById(userId));
+	}
+
 	@PostMapping("/{userId}")
 	@PreAuthorize("hasRole('ROLE_ADMIN')")
 	public void updateUser(@RequestBody UserForm userForm, @PathVariable Integer userId) {
