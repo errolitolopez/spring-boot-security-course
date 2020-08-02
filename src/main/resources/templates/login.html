@@ -41,7 +41,8 @@ input[type="checkbox"] {
 		<form
 			class="form-signin"
 			method="post"
-			action="/login">
+			action="#"
+			th:action="@{/login}">
 			<h2 class="form-signin-heading">Please login</h2>
 			<p>
 				<label
@@ -66,7 +67,7 @@ input[type="checkbox"] {
 					placeholder="Password">
 			</p>
 			<p>
-			     Remember me
+				Remember me
 				<input
 					type="checkbox"
 					id="remember-me"
