@@ -1,12 +1,13 @@
 package com.example.springbootsecuritycourse.service;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.example.springbootsecuritycourse.exception.NotFoundException;
+import com.example.springbootsecuritycourse.exception.NotValidException;
 import com.example.springbootsecuritycourse.model.User;
 import com.example.springbootsecuritycourse.repository.UserRepository;
 
@@ -16,6 +17,10 @@ public class UserService {
 	private final UserRepository userRepository;
 	private final PasswordEncoder bCryptPasswordEncoder;
 
+	private static final String ID_NOT_FOUND = "Id %s not found.";
+	private static final String EMAIL_ALREADY_EXISTS = "Email %s already exists.";
+	private static final String USERNAME_ALREADY_EXISTS = "Username %s already exists.";
+
 	public UserService(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder) {
 		super();
 		this.userRepository = userRepository;
@@ -23,15 +28,15 @@ public class UserService {
 	}
 
 	public void createUser(User user) {
-		Optional<User> selectFindByEmail = userRepository.findByEmail(user.getEmail());
-		Optional<User> selectFindByUsername = userRepository.findByUsername(user.getUsername());
+		boolean anyMatchEmail = anyMatchEmail(user.getEmail());
+		boolean anyMatchUsername = anyMatchUsername(user.getUsername());
 
-		if (selectFindByEmail.isPresent()) {
-			throw new RuntimeException(String.format("Email %s was already used.", user.getEmail()));
+		if (anyMatchEmail) {
+			throw new NotValidException(String.format(EMAIL_ALREADY_EXISTS, user.getEmail()));
 		}
 
-		if (selectFindByUsername.isPresent()) {
-			throw new RuntimeException(String.format("Username %s was already used.", user.getUsername()));
+		if (anyMatchUsername) {
+			throw new NotValidException(String.format(USERNAME_ALREADY_EXISTS, user.getUsername()));
 		}
 
 		userRepository.save(new User(user.getUserId(),
@@ -46,28 +51,28 @@ public class UserService {
 
 	public User getUserById(Integer userId) {
 		return userRepository.findById(userId)
-				.orElseThrow(() -> new RuntimeException(String.format("User with id %s was not found.", userId)));
+				.orElseThrow(() -> new NotFoundException(String.format(ID_NOT_FOUND, userId)));
 	}
 
 	public List<User> getAllUsers() {
-		return userRepository.findAll();
+		return getAll();
 	}
 
 	public void updateUser(User user, Integer userId) {
-		Optional<User> selectFindByEmail = userRepository.findByEmail(user.getEmail());
-		Optional<User> selectFindByUsername = userRepository.findByUsername(user.getUsername());
-		Optional<User> selectFindById = userRepository.findById(userId);
+		boolean anyMatchEmail = anyMatchEmail(user.getEmail());
+		boolean anyMatchUsername = anyMatchUsername(user.getUsername());
+		boolean anyMatchUserId = anyMatchUserId(userId);
 
-		if (!selectFindById.isPresent()) {
-			throw new RuntimeException(String.format("User with id %s was not found.", userId));
+		if (!anyMatchUserId) {
+			throw new NotFoundException(String.format(ID_NOT_FOUND, userId));
 		}
 
-		if (selectFindByEmail.isPresent()) {
-			throw new RuntimeException(String.format("Email %s was already used.", user.getEmail()));
+		if (anyMatchEmail) {
+			throw new NotValidException(String.format(EMAIL_ALREADY_EXISTS, user.getEmail()));
 		}
 
-		if (selectFindByUsername.isPresent()) {
-			throw new RuntimeException(String.format("Username %s was already used.", user.getUsername()));
+		if (anyMatchUsername) {
+			throw new NotValidException(String.format(USERNAME_ALREADY_EXISTS, user.getUsername()));
 		}
 
 		userRepository.save(
@@ -82,10 +87,34 @@ public class UserService {
 	}
 
 	public void deleteUser(Integer userId) {
-		User user = userRepository.findById(userId)
-				.orElseThrow(() -> new RuntimeException(
-						String.format("Unable to delete user with id %s was not found.", userId))
-				);
-		userRepository.delete(user);
+		boolean anyMatchUserId = anyMatchUserId(userId);
+
+		if (anyMatchUserId) {
+			throw new NotFoundException(String.format(ID_NOT_FOUND, userId));
+		}
+
+		userRepository.deleteById(userId);
+	}
+
+	private boolean anyMatchUserId(Integer userId) {
+		boolean anyMatchUserId = getAll().stream()
+				.anyMatch(selectUser -> selectUser.getUserId().equals(userId));
+		return anyMatchUserId;
+	}
+
+	private boolean anyMatchUsername(String username) {
+		boolean anyMatchUsername = getAll().stream()
+				.anyMatch(selectUser -> selectUser.getUsername().equals(username));
+		return anyMatchUsername;
+	}
+
+	private boolean anyMatchEmail(String email) {
+		boolean anyMatchEmail = getAll().stream()
+				.anyMatch(selectUser -> selectUser.getEmail().equals(email));
+		return anyMatchEmail;
+	}
+
+	private List<User> getAll() {
+		return userRepository.findAll();
 	}
 }

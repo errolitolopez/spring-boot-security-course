@@ -4,9 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import com.example.springbootsecuritycourse.exception.NotFoundException;
 import com.example.springbootsecuritycourse.model.CustomUserDetails;
 import com.example.springbootsecuritycourse.model.User;
 import com.example.springbootsecuritycourse.repository.UserRepository;
@@ -23,10 +23,12 @@ public class CustomUserDetailsService implements UserDetailsService {
 	}
 
 	@Override
-	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-
-		User user = userRepository.findByUsername(username)
-				.orElseThrow(() -> new RuntimeException(String.format("User with username %s not found", username)));
+	public UserDetails loadUserByUsername(String username){
+		User user = userRepository.findAll()
+				.stream()
+				.filter(selectUser -> selectUser.getUsername().equals(username))
+				.findFirst()
+				.orElseThrow(() -> new NotFoundException(String.format("User not found with username: %s", username)));
 
 		return new CustomUserDetails(
 				user.getUserId(),
